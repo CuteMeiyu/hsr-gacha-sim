@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>星穹铁道抽卡模拟器</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .input-item {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .results {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .result-item {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>抽卡模拟器</h1>
+        <div class="input-group">
+            <div class="input-item">
+                <label>模拟次数:</label>
+                <input type="number" id="attempts" value="100000" min="1">
+            </div>
+            <div class="input-item">
+                <label>持有抽数:</label>
+                <input type="number" id="pulls" value="240" min="1">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <div class="input-item">
+                <label>角色池水位:</label>
+                <input type="number" id="characterPity" value="0" min="0" max="89">
+            </div>
+            <div class="input-item">
+                <label>光锥池水位:</label>
+                <input type="number" id="lightconePity" value="0" min="0" max="79">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <div class="input-item">
+                <label>角色大保底:</label>
+                <select id="characterGuaranteed">
+                    <option value="0">否</option>
+                    <option value="1">是</option>
+                </select>
+            </div>
+            <div class="input-item">
+                <label>光锥大保底:</label>
+                <select id="lightconeGuaranteed">
+                    <option value="0">否</option>
+                    <option value="1">是</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <div class="input-item">
+                <label>抽卡路线 (C=角色, L=光锥):</label>
+                <input type="text" id="route" value="CLCC" placeholder="例如: CLCC (角色-光锥-角色-角色)">
+            </div>
+        </div>
+
+        <button onclick="runSimulation()">开始模拟</button>
+
+        <div class="results" id="results">
+            <!-- 结果将动态插入到这里 -->
+        </div>
+    </div>
+
+    <script>
+        class GachaModel {
+            constructor(level = 0, lost = false) {
+                this.level = level;
+                this.lost = lost;
+                this.winCount = 0;
+            }
+
+            gacha() {
+                this.level++;
+                if (Math.random() >= this.hitRate()) return 0;
+                this.level = 0;
+                if (this.lost || Math.random() < this.winRate()) {
+                    this.lost = false;
+                    return 2;
+                }
+                this.lost = true;
+                return 1;
+            }
+        }
+
+        class CharacterGachaModel extends GachaModel {
+            static hitRateTable = Array.from({ length: 91 }, (_, i) =>
+                0.006 + Math.max(i - 73, 0) * 0.06
+            );
+
+            hitRate() {
+                return CharacterGachaModel.hitRateTable[this.level];
+            }
+
+            winRate() {
+                return 0.5625;
+            }
+        }
+
+        class LightConeGachaModel extends GachaModel {
+            static hitRateTable = Array.from({ length: 81 }, (_, i) =>
+                0.007 + Math.max(i - 65, 0) * 0.07
+            );
+
+            hitRate() {
+                return LightConeGachaModel.hitRateTable[this.level];
+            }
+
+            winRate() {
+                return 0.78125;
+            }
+        }
+
+        function attempt(pulls, originalModels, route) {
+            // 创建全新的模型实例
+            const models = originalModels.map(model => {
+                if (model instanceof CharacterGachaModel) {
+                    const newModel = new CharacterGachaModel(model.level, model.lost);
+                    newModel.winCount = model.winCount;
+                    return newModel;
+                }
+                if (model instanceof LightConeGachaModel) {
+                    const newModel = new LightConeGachaModel(model.level, model.lost);
+                    newModel.winCount = model.winCount;
+                    return newModel;
+                }
+                return new GachaModel(model.level, model.lost);
+            });
+
+            let routeIndex = 0;
+            let cost = 0;
+
+            while (routeIndex < route.length && pulls > 0) {
+                const model = models[route[routeIndex]];
+                pulls--;
+                cost++;
+                const result = model.gacha();
+                if (result === 0) continue;
+                cost = 0;
+                if (result === 2) {
+                    model.winCount++;
+                    routeIndex++;
+                }
+            }
+            return [models, cost + pulls, routeIndex >= route.length];
+        }
+
+        function test(attempts, pulls, models, route) {
+            const resultTable = new Map();
+            let successCount = 0;
+
+            for (let i = 0; i < attempts; i++) {
+                const [modelsAfter, remainOrCost, success] = attempt(pulls, models, route);
+                // 修改计数显示方式
+                const charWin = modelsAfter[0].winCount - 1;
+                const lightConeWin = modelsAfter[1].winCount;
+                const baseKey = `${charWin}+${lightConeWin}`;
+                const hasGuarantee = modelsAfter.some(m => m.lost);
+                const key = hasGuarantee ? `${baseKey}+大保底` : baseKey;
+
+                if (!resultTable.has(key)) {
+                    resultTable.set(key, { counts: [], success: 0 });
+                }
+                resultTable.get(key).counts.push(remainOrCost);
+                if (success) {
+                    resultTable.get(key).success++;
+                    successCount++;
+                }
+            }
+            return { successCount, resultTable };
+        }
+
+        function runSimulation() {
+            const inputs = {
+                attempts: parseInt(document.getElementById('attempts').value),
+                pulls: parseInt(document.getElementById('pulls').value),
+                characterPity: parseInt(document.getElementById('characterPity').value),
+                lightconePity: parseInt(document.getElementById('lightconePity').value),
+                characterGuaranteed: document.getElementById('characterGuaranteed').value === '1',
+                lightconeGuaranteed: document.getElementById('lightconeGuaranteed').value === '1',
+                route: document.getElementById('route').value.toUpperCase()
+            };
+
+            const models = [
+                new CharacterGachaModel(inputs.characterPity, inputs.characterGuaranteed),
+                new LightConeGachaModel(inputs.lightconePity, inputs.lightconeGuaranteed)
+            ];
+
+            const routeArray = Array.from(inputs.route).map(c => c === 'C' ? 0 : 1);
+            const start = performance.now();
+            const { successCount, resultTable } = test(inputs.attempts, inputs.pulls, models, routeArray);
+            const timeCost = (performance.now() - start) / 1000;
+
+            // 排序逻辑
+            const sortedEntries = Array.from(resultTable.entries()).sort((a, b) => {
+                const aKey = a[0].replace('+大保底', '');
+                const bKey = b[0].replace('+大保底', '');
+                return aKey.localeCompare(bKey) || (a[0].includes('大保底') ? 1 : -1);
+            });
+
+            // 显示结果
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="result-item">
+                    <h3>成功率: ${(successCount / inputs.attempts * 100).toFixed(2)}%</h3>
+                    <p>模拟次数: ${inputs.attempts}次</p>
+                    <p>总用时: ${timeCost.toFixed(2)}秒</p>
+                </div>
+            `;
+
+            sortedEntries.forEach(([key, value]) => {
+                const avg = value.counts.reduce((a, b) => a + b, 0) / value.counts.length;
+                const isSuccess = value.success > 0;
+                const avgText = isSuccess ? `平均剩${avg.toFixed(2)}抽` : `平均垫${avg.toFixed(2)}抽`;
+
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                resultItem.innerHTML = `
+                    <p><strong>${key}</strong></p>
+                    <p>${avgText} | 频数: ${value.counts.length} | 频率: ${(value.counts.length / inputs.attempts * 100).toFixed(2)}%</p>
+                `;
+                resultsDiv.appendChild(resultItem);
+            });
+        }
+    </script>
+</body>
+
+</html>
