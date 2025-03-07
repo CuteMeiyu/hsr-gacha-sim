@@ -75,6 +75,25 @@
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
+
+        /* 在原有样式基础上新增 */
+        .target-display {
+            color: #666;
+            font-size: 0.9em;
+            margin-left: 10px;
+            padding: 3px 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .input-item {
+            position: relative;
+        }
+
+        #route {
+            padding-right: 80px;
+            /* 给目标显示留出空间 */
+        }
     </style>
 </head>
 
@@ -123,7 +142,8 @@
         <div class="input-group">
             <div class="input-item">
                 <label>抽卡路线 (C=角色, L=光锥):</label>
-                <input type="text" id="route" value="CLCC" placeholder="例如: CLCC (角色-光锥-角色-角色)">
+                <input type="text" id="route" value="CLCC">
+                <span id="targetDisplay" class="target-display"></span>
             </div>
         </div>
 
@@ -135,6 +155,28 @@
     </div>
 
     <script>
+        // 在原有JavaScript代码前添加以下功能
+        function updateTargetDisplay() {
+            const routeInput = document.getElementById('route');
+            const displaySpan = document.getElementById('targetDisplay');
+
+            // 过滤非C/L字符并转为大写
+            const filtered = routeInput.value.toUpperCase().replace(/[^CL]/g, '');
+            routeInput.value = filtered; // 自动修正输入内容
+
+            // 计算目标
+            const cCount = (filtered.match(/C/g) || []).length;
+            const lCount = (filtered.match(/L/g) || []).length;
+            const target = `${cCount - 1}+${lCount}`;
+
+            displaySpan.textContent = `目标: ${target}`;
+        }
+
+        // 初始化时绑定事件
+        document.getElementById('route').addEventListener('input', updateTargetDisplay);
+        // 初始化显示
+        updateTargetDisplay();
+
         class GachaModel {
             constructor(level = 0, lost = false) {
                 this.level = level;
