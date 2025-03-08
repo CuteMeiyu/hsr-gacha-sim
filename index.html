@@ -3,8 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>星穹铁道抽卡模拟器</title>
+    <title>星铁抽卡模拟器</title>
     <style>
+        :root {
+            --primary-color: #007bff;
+            --border-radius: 4px;
+            --shadow-default: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 800px;
@@ -30,6 +36,11 @@
         .input-item {
             flex: 1;
             min-width: 200px;
+            position: relative;
+        }
+
+        #route {
+            padding-right: 80px;
         }
 
         label {
@@ -39,20 +50,24 @@
         }
 
         input,
-        select {
-            width: 100%;
+        select,
+        button {
             padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: var(--border-radius);
             box-sizing: border-box;
         }
 
+        input,
+        select {
+            width: 100%;
+            border: 1px solid #ddd;
+        }
+
         button {
-            background: #007bff;
+            background: var(--primary-color);
             color: white;
             border: none;
             padding: 10px 20px;
-            border-radius: 5px;
             cursor: pointer;
             transition: background 0.3s;
         }
@@ -65,34 +80,148 @@
             margin-top: 2rem;
             padding: 1rem;
             background: #f8f9fa;
-            border-radius: 5px;
+            border-radius: var(--border-radius);
         }
 
-        .result-item {
-            margin: 1rem 0;
-            padding: 1rem;
-            background: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        /* 在原有样式基础上新增 */
         .target-display {
             color: #666;
             font-size: 0.9em;
             margin-left: 10px;
             padding: 3px 8px;
             background: #f0f0f0;
-            border-radius: 4px;
+            border-radius: var(--border-radius);
         }
 
-        .input-item {
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 12px;
+            background-color: #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
+            border-radius: 6px;
+            transition: width 0.5s ease-in-out;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-text {
+            font-size: 0.9em;
+            color: #666;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .result-item {
+            margin: 1rem 0;
+            padding: 1.2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow-default);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .result-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .result-item h3 {
+            margin: 0 0 0.8rem;
+            color: #2c3e50;
+        }
+
+        .histogram-container {
+            margin: 20px 0;
             position: relative;
         }
 
-        #route {
-            padding-right: 80px;
-            /* 给目标显示留出空间 */
+        .histogram-title {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .histogram {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 200px;
+            margin: 20px 0;
+            gap: 2px;
+        }
+
+        .histogram.no-label {
+            height: auto;
+        }
+
+        .histogram-bar-container {
+            flex: 1 1 20px;
+            height: 160px;
+            position: relative;
+        }
+
+        .histogram-bar {
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            right: 10%;
+            background: #4CAF50;
+            transition: height 0.3s ease;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .bin-label,
+        .freq-label {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8em;
+            width: max-content;
+        }
+
+        .bin-label {
+            bottom: -25px;
+            color: #666;
+        }
+
+        .freq-label {
+            top: -25px;
+            color: #333;
+        }
+
+        .histogram-tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transform: translate(-50%, -100%);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        /* 移动端优化 */
+        @media (pointer: coarse) {
+            .histogram-tooltip {
+                font-size: 16px;
+                padding: 12px 16px;
+                transform: translate(-50%, 0);
+                max-width: 200px;
+            }
         }
     </style>
 </head>
@@ -155,7 +284,137 @@
     </div>
 
     <script>
-        // 在原有JavaScript代码前添加以下功能
+        function generateHistogram(counts, success) {
+            const binSize = 10;
+            const bins = new Map();
+
+            counts.forEach(c => {
+                const bin = Math.floor(c / binSize) * binSize;
+                bins.set(bin, (bins.get(bin) || 0) + 1);
+            });
+
+            const minBin = counts.length ? Math.min(...counts.map(c => Math.floor(c / binSize) * binSize)) : 0;
+            const maxBin = counts.length ? Math.max(...counts.map(c => Math.floor(c / binSize) * binSize)) : 0;
+            for (let bin = minBin; bin <= maxBin; bin += binSize) {
+                if (!bins.has(bin)) bins.set(bin, 0);
+            }
+
+            const sortedBins = Array.from(bins).sort((a, b) => a[0] - b[0]);
+            const maxFreq = Math.max(...Array.from(bins.values()));
+
+            // 判断是否显示标签
+            const containerWidth = Math.min(window.innerWidth, 800) - 40; // 估算容器有效宽度
+            const minLabelWidth = 60; // 每个标签需要的最小宽度
+            const maxLabels = Math.floor(containerWidth / minLabelWidth);
+            const showLabels = sortedBins.length <= maxLabels;
+
+            return `
+        <div class="histogram-container">
+            <div class="histogram-title">${success ? "剩余抽数分布" : "垫数分布"}</div>
+            <div class="histogram${showLabels ? "" : " no-label"}">
+                ${sortedBins.map(([bin, freq]) => `
+                    <div class="histogram-bar-container" 
+                        data-bin="${bin}-${bin + binSize - 1}"
+                        data-freq="${freq}"
+                        data-freq-percent = "${(freq / counts.length * 100).toFixed(2)}%">
+                        <div class="histogram-bar" 
+                            style="height: ${maxFreq ? (freq / maxFreq * 100).toFixed(2) : 0}%">
+                        </div>
+                        ${showLabels ? `
+                            <div class="bin-label">${bin}-${bin + binSize - 1}</div>
+                            <div class="freq-label">${(freq / counts.length * 100).toFixed(2)}%</div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+        }
+
+        function showTooltip(container, isTouch) {
+            const tooltip = document.querySelector('.histogram-tooltip');
+            if (!container || !tooltip || container.querySelector(".bin-label")) {
+                tooltip.style.display = 'none';
+                return;
+            }
+
+            const bin = container.dataset.bin;
+            const freq = container.dataset.freq;
+            const freqPercent = container.dataset.freqPercent;
+            const success = container.closest('.result-item').dataset.success === 'true';
+
+            tooltip.innerHTML = `
+        <div>区间: ${bin}</div>
+        <div>频数: ${freq}</div>
+        <div>频率: ${freqPercent}</div>
+    `;
+
+            // 定位工具提示（移动端显示在下方）
+            const rect = container.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const topY = isTouch ? rect.bottom + 10 : rect.top - 10;
+
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${centerX}px`;
+            tooltip.style.top = `${topY}px`;
+        }
+
+        document.addEventListener('touchstart', (e) => {
+            const container = e.target.closest('.histogram-bar-container');
+            const tooltip = document.querySelector('.histogram-tooltip');
+
+            if (container && !container.querySelector(".bin-label")) {
+                e.preventDefault(); // 阻止默认行为
+                showTooltip(container, true);
+
+                // 添加点击外部关闭功能
+                const closeTooltip = (event) => {
+                    if (!event.target.closest('.histogram-bar-container')) {
+                        tooltip.style.display = 'none';
+                        document.removeEventListener('touchend', closeTooltip);
+                    }
+                };
+                document.addEventListener('touchend', closeTooltip);
+            }
+        }, { passive: false });
+
+        document.addEventListener('mousemove', (e) => {
+            const container = e.target.closest('.histogram-bar-container');
+            showTooltip(container, false);
+        });
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'histogram-tooltip';
+        tooltip.style.display = 'none';
+        document.body.appendChild(tooltip);
+
+        function handleResultClick(event) {
+            const item = event.currentTarget;
+            if (!item.classList.contains('result-item')) return;
+
+            const isTooltipClick = event.target.closest('.histogram-bar-container') &&
+                document.querySelector('.histogram-tooltip').style.display === 'block';
+
+            if (isTooltipClick) {
+                document.querySelector('.histogram-tooltip').style.display = 'none';
+                return;
+            }
+
+            if (item.dataset.view === 'histogram') {
+                item.innerHTML = item.dataset.original;
+                item.dataset.view = 'default';
+            } else {
+                const counts = JSON.parse(item.dataset.counts);
+                const success = JSON.parse(item.dataset.success);
+                item.dataset.original = item.innerHTML;
+                item.dataset.view = 'histogram';
+                item.innerHTML = `
+            <h3>${item.querySelector('strong').textContent}</h3>
+            ${generateHistogram(counts, success)}
+        `;
+            }
+        }
+
         function updateTargetDisplay() {
             const routeInput = document.getElementById('route');
             const displaySpan = document.getElementById('targetDisplay');
@@ -164,7 +423,6 @@
             const filtered = routeInput.value.toUpperCase().replace(/[^CL]/g, '');
             routeInput.value = filtered; // 自动修正输入内容
 
-            // 计算目标
             const cCount = (filtered.match(/C/g) || []).length;
             const lCount = (filtered.match(/L/g) || []).length;
             const target = `${cCount - 1}+${lCount}`;
@@ -172,9 +430,7 @@
             displaySpan.textContent = `目标: ${target}`;
         }
 
-        // 初始化时绑定事件
         document.getElementById('route').addEventListener('input', updateTargetDisplay);
-        // 初始化显示
         updateTargetDisplay();
 
         class GachaModel {
@@ -226,7 +482,6 @@
         }
 
         function attempt(pulls, originalModels, route) {
-            // 创建全新的模型实例
             const models = originalModels.map(model => {
                 if (model instanceof CharacterGachaModel) {
                     const newModel = new CharacterGachaModel(model.level, model.lost);
@@ -265,7 +520,6 @@
 
             for (let i = 0; i < attempts; i++) {
                 const [modelsAfter, remainOrCost, success] = attempt(pulls, models, route);
-                // 修改计数显示方式
                 const charWin = modelsAfter[0].winCount - 1;
                 const lightConeWin = modelsAfter[1].winCount;
                 const baseKey = `${charWin}+${lightConeWin}`;
@@ -305,14 +559,12 @@
             const { successCount, resultTable } = test(inputs.attempts, inputs.pulls, models, routeArray);
             const timeCost = (performance.now() - start) / 1000;
 
-            // 排序逻辑
             const sortedEntries = Array.from(resultTable.entries()).sort((a, b) => {
                 const aKey = a[0].replace('+大保底', '');
                 const bKey = b[0].replace('+大保底', '');
                 return aKey.localeCompare(bKey) || (a[0].includes('大保底') ? 1 : -1);
             });
 
-            // 显示结果
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = `
                 <div class="result-item">
@@ -326,13 +578,27 @@
                 const avg = value.counts.reduce((a, b) => a + b, 0) / value.counts.length;
                 const isSuccess = value.success > 0;
                 const avgText = isSuccess ? `平均剩${avg.toFixed(2)}抽` : `平均垫${avg.toFixed(2)}抽`;
+                const percentage = (value.counts.length / inputs.attempts * 100);
 
                 const resultItem = document.createElement('div');
                 resultItem.className = 'result-item';
                 resultItem.innerHTML = `
-                    <p><strong>${key}</strong></p>
-                    <p>${avgText} | 频数: ${value.counts.length} | 频率: ${(value.counts.length / inputs.attempts * 100).toFixed(2)}%</p>
-                `;
+                <p><strong>${key}</strong></p>
+                <p>${avgText} | 频数: ${value.counts.length}</p>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentage.toFixed(2)}%"></div>
+                    </div>
+                    <span class="progress-text">${percentage.toFixed(2)}%</span>
+                </div>
+            `;
+
+                resultItem.dataset.counts = JSON.stringify(value.counts);
+                resultItem.dataset.success = value.success > 0;
+                resultItem.dataset.original = resultItem.innerHTML;
+                resultItem.dataset.view = 'default';
+                resultItem.addEventListener('click', handleResultClick);
+
                 resultsDiv.appendChild(resultItem);
             });
         }
