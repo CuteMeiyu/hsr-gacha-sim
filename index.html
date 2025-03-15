@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>星铁抽卡模拟器</title>
+    <title data-i18n="title">星铁抽卡模拟器</title>
     <style>
         :root {
             --primary-color: #007bff;
@@ -229,55 +229,55 @@
 
 <body>
     <div class="container">
-        <h1>星铁抽卡模拟器</h1>
+        <h1 data-i18n="title"></h1>
         <div class="input-group">
             <div class="input-item">
-                <label>模拟次数:</label>
+                <label data-i18n="simulationAttempts"></label>
                 <input type="number" id="attempts" value="100000" min="1">
             </div>
             <div class="input-item">
-                <label>持有抽数:</label>
+                <label data-i18n="pullsHeld"></label>
                 <input type="number" id="pulls" value="240" min="1">
             </div>
         </div>
 
         <div class="input-group">
             <div class="input-item">
-                <label>角色池水位:</label>
+                <label data-i18n="characterPity"></label>
                 <input type="number" id="characterPity" value="0" min="0" max="89">
             </div>
             <div class="input-item">
-                <label>光锥池水位:</label>
+                <label data-i18n="lightconePity"></label>
                 <input type="number" id="lightconePity" value="0" min="0" max="79">
             </div>
         </div>
 
         <div class="input-group">
             <div class="input-item">
-                <label>角色大保底:</label>
+                <label data-i18n="characterGuaranteed"></label>
                 <select id="characterGuaranteed">
-                    <option value="0">否</option>
-                    <option value="1">是</option>
+                    <option value="0" data-i18n="no"></option>
+                    <option value="1" data-i18n="yes"></option>
                 </select>
             </div>
             <div class="input-item">
-                <label>光锥大保底:</label>
+                <label data-i18n="lightconeGuaranteed"></label>
                 <select id="lightconeGuaranteed">
-                    <option value="0">否</option>
-                    <option value="1">是</option>
+                    <option value="0" data-i18n="no"></option>
+                    <option value="1" data-i18n="yes"></option>
                 </select>
             </div>
         </div>
 
         <div class="input-group">
             <div class="input-item">
-                <label>抽卡路线 (C=角色, L=光锥):</label>
+                <label data-i18n="routeLabel"></label>
                 <input type="text" id="route" value="CLCC">
                 <span id="targetDisplay" class="target-display"></span>
             </div>
         </div>
 
-        <button onclick="runSimulation()">开始模拟</button>
+        <button onclick="runSimulation()" data-i18n="runSimulation"></button>
 
         <div id="results">
             <!-- 结果将动态插入到这里 -->
@@ -285,6 +285,75 @@
     </div>
 
     <script>
+        const translations = {
+            zh: {
+                title: '星铁抽卡模拟器',
+                simulationAttempts: '模拟次数:',
+                pullsHeld: '持有抽数:',
+                characterPity: '角色池水位:',
+                lightconePity: '光锥池水位:',
+                characterGuaranteed: '角色大保底:',
+                lightconeGuaranteed: '光锥大保底:',
+                routeLabel: '抽卡路线 (C=角色, L=光锥):',
+                runSimulation: '开始模拟',
+                successRate: '成功率',
+                totalAttempts: '模拟次数',
+                totalTime: '总用时',
+                averageRemaining: '平均剩余抽数: ',
+                averagePity: '平均垫抽数: ',
+                pullsUnit: '抽',
+                frequency: '频数',
+                frequencyPercentage: '频率',
+                range: '区间',
+                remainingPulls: '剩余抽数分布',
+                pityDistribution: '垫抽分布',
+                target: '目标',
+                guaranteed: '大保底',
+                yes: '是',
+                no: '否',
+                seconds: '秒'
+            },
+            en: {
+                title: 'Honkai Star Rail Gacha Simulator',
+                simulationAttempts: 'Simulations:',
+                pullsHeld: 'Pulls held:',
+                characterPity: 'Character pity:',
+                lightconePity: 'Lightcone pity:',
+                characterGuaranteed: 'Character guaranteed:',
+                lightconeGuaranteed: 'Lightcone guaranteed:',
+                routeLabel: 'Route (C=Character, L=Lightcone):',
+                runSimulation: 'Run Simulation',
+                successRate: 'Success Rate',
+                totalAttempts: 'Simulations',
+                totalTime: 'Time used',
+                averageRemaining: 'Avg remaining: ',
+                averagePity: 'Avg pity: ',
+                pullsUnit: ' pulls',
+                frequency: 'Frequency',
+                frequencyPercentage: 'Percentage',
+                range: 'Range',
+                remainingPulls: 'Remaining Pulls',
+                pityDistribution: 'Pity Distribution',
+                target: 'Target',
+                guaranteed: 'Guaranteed',
+                yes: 'Yes',
+                no: 'No',
+                seconds: 's'
+            }
+        };
+
+        const lang = navigator.language.split('-')[0] || 'en';
+
+        // 翻译
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.textContent = translations[lang][key];
+            });
+            document.title = translations[lang].title;
+            updateTargetDisplay();
+        });
+
         function generateHistogram(counts, success) {
             const binSize = 10;
             const bins = new Map();
@@ -311,8 +380,8 @@
 
             return `
         <div class="histogram-container">
-            <div class="histogram-title">${success ? "剩余抽数分布" : "垫数分布"}</div>
-            <div class="histogram${showLabels ? "" : " no-label"}">
+            <div class="histogram-title">${success ? translations[lang].remainingPulls : translations[lang].pityDistribution}</div>
+                <div class="histogram${showLabels ? "" : " no-label"}">
                 ${sortedBins.map(([bin, freq]) => `
                     <div class="histogram-bar-container" 
                         data-bin="${bin}-${bin + binSize - 1}"
@@ -345,9 +414,9 @@
             const success = container.closest('.result-item').dataset.success === 'true';
 
             tooltip.innerHTML = `
-        <div>区间: ${bin}</div>
-        <div>频数: ${freq}</div>
-        <div>频率: ${freqPercent}</div>
+        <div>${translations[lang].range}: ${bin}</div>
+        <div>${translations[lang].frequency}: ${freq}</div>
+        <div>${translations[lang].frequencyPercentage}: ${freqPercent}</div>
     `;
 
             // 定位工具提示（移动端显示在下方）
@@ -416,19 +485,19 @@
             }
         }
 
+        function getResultString(cCount, lCount) {
+            return lang == "zh" ? `${cCount - 1}+${lCount}` : `E${cCount - 1}S${lCount}`
+        }
+
         function updateTargetDisplay() {
             const routeInput = document.getElementById('route');
             const displaySpan = document.getElementById('targetDisplay');
-
-            // 过滤非C/L字符并转为大写
             const filtered = routeInput.value.toUpperCase().replace(/[^CL]/g, '');
             routeInput.value = filtered;
-
             const cCount = (filtered.match(/C/g) || []).length;
             const lCount = (filtered.match(/L/g) || []).length;
-            const target = `${cCount - 1}+${lCount}`;
-
-            displaySpan.textContent = `目标: ${target}`;
+            const target = getResultString(cCount, lCount);
+            displaySpan.textContent = `${translations[lang].target}: ${target}`;
         }
 
         document.getElementById('route').addEventListener('input', updateTargetDisplay);
@@ -521,11 +590,9 @@
 
             for (let i = 0; i < attempts; i++) {
                 const [modelsAfter, remainOrCost, success] = attempt(pulls, models, route);
-                const charWin = modelsAfter[0].winCount - 1;
-                const lightConeWin = modelsAfter[1].winCount;
-                const baseKey = `${charWin}+${lightConeWin}`;
+                const baseKey = getResultString(modelsAfter[0].winCount, modelsAfter[1].winCount);
                 const hasGuarantee = modelsAfter.some(m => m.lost);
-                const key = hasGuarantee ? `${baseKey}+大保底` : baseKey;
+                const key = hasGuarantee ? `${baseKey}+${translations[lang].guaranteed}` : baseKey;
 
                 if (!resultTable.has(key)) {
                     resultTable.set(key, { counts: [], success: 0 });
@@ -560,32 +627,29 @@
             const { successCount, resultTable } = test(inputs.attempts, inputs.pulls, models, routeArray);
             const timeCost = (performance.now() - start) / 1000;
 
-            const sortedEntries = Array.from(resultTable.entries()).sort((a, b) => {
-                const aKey = a[0].replace('+大保底', '');
-                const bKey = b[0].replace('+大保底', '');
-                return aKey.localeCompare(bKey) || (a[0].includes('大保底') ? 1 : -1);
-            });
+            const sortedEntries = Array.from(resultTable.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = `
                 <div class="result-item">
-                    <h3>成功率: ${(successCount / inputs.attempts * 100).toFixed(2)}%</h3>
-                    <p>模拟次数: ${inputs.attempts}次</p>
-                    <p>总用时: ${timeCost.toFixed(2)}秒</p>
-                </div>
-            `;
+                    <h3>${translations[lang].successRate}: ${(successCount / inputs.attempts * 100).toFixed(2)}%</h3>
+                    <p>${translations[lang].totalAttempts}: ${inputs.attempts}</p>
+                    <p>${translations[lang].totalTime}: ${timeCost.toFixed(2)}${translations[lang].seconds}</p>
+                </div>`;
 
             sortedEntries.forEach(([key, value]) => {
                 const avg = value.counts.reduce((a, b) => a + b, 0) / value.counts.length;
                 const isSuccess = value.success > 0;
-                const avgText = isSuccess ? `平均剩${avg.toFixed(2)}抽` : `平均垫${avg.toFixed(2)}抽`;
+                const avgText = isSuccess
+                    ? `${translations[lang].averageRemaining}${avg.toFixed(2)}${translations[lang].pullsUnit}`
+                    : `${translations[lang].averagePity}${avg.toFixed(2)}${translations[lang].pullsUnit}`;
                 const percentage = (value.counts.length / inputs.attempts * 100);
 
                 const resultItem = document.createElement('div');
                 resultItem.className = 'result-item';
                 resultItem.innerHTML = `
                 <p><strong>${key}</strong></p>
-                <p>${avgText} | 频数: ${value.counts.length}</p>
+                <p>${avgText} | ${translations[lang].frequency}: ${value.counts.length}</p>
                 <div class="progress-container">
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: ${percentage.toFixed(2)}%"></div>
