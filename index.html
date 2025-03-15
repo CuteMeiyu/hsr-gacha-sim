@@ -342,15 +342,16 @@
             }
         };
 
-        const lang = navigator.language.split('-')[0] || 'en';
+        const lang = navigator.language.split('-')[0];
+        const translation = translations[lang] || translations["en"]
 
         // 翻译
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
-                el.textContent = translations[lang][key];
+                el.textContent = translation[key];
             });
-            document.title = translations[lang].title;
+            document.title = translation.title;
             updateTargetDisplay();
         });
 
@@ -380,7 +381,7 @@
 
             return `
         <div class="histogram-container">
-            <div class="histogram-title">${success ? translations[lang].remainingPulls : translations[lang].pityDistribution}</div>
+            <div class="histogram-title">${success ? translation.remainingPulls : translation.pityDistribution}</div>
                 <div class="histogram${showLabels ? "" : " no-label"}">
                 ${sortedBins.map(([bin, freq]) => `
                     <div class="histogram-bar-container" 
@@ -414,9 +415,9 @@
             const success = container.closest('.result-item').dataset.success === 'true';
 
             tooltip.innerHTML = `
-        <div>${translations[lang].range}: ${bin}</div>
-        <div>${translations[lang].frequency}: ${freq}</div>
-        <div>${translations[lang].frequencyPercentage}: ${freqPercent}</div>
+        <div>${translation.range}: ${bin}</div>
+        <div>${translation.frequency}: ${freq}</div>
+        <div>${translation.frequencyPercentage}: ${freqPercent}</div>
     `;
 
             // 定位工具提示（移动端显示在下方）
@@ -497,7 +498,7 @@
             const cCount = (filtered.match(/C/g) || []).length;
             const lCount = (filtered.match(/L/g) || []).length;
             const target = getResultString(cCount, lCount);
-            displaySpan.textContent = `${translations[lang].target}: ${target}`;
+            displaySpan.textContent = `${translation.target}: ${target}`;
         }
 
         document.getElementById('route').addEventListener('input', updateTargetDisplay);
@@ -592,7 +593,7 @@
                 const [modelsAfter, remainOrCost, success] = attempt(pulls, models, route);
                 const baseKey = getResultString(modelsAfter[0].winCount, modelsAfter[1].winCount);
                 const hasGuarantee = modelsAfter.some(m => m.lost);
-                const key = hasGuarantee ? `${baseKey}+${translations[lang].guaranteed}` : baseKey;
+                const key = hasGuarantee ? `${baseKey}+${translation.guaranteed}` : baseKey;
 
                 if (!resultTable.has(key)) {
                     resultTable.set(key, { counts: [], success: 0 });
@@ -632,24 +633,24 @@
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = `
                 <div class="result-item">
-                    <h3>${translations[lang].successRate}: ${(successCount / inputs.attempts * 100).toFixed(2)}%</h3>
-                    <p>${translations[lang].totalAttempts}: ${inputs.attempts}</p>
-                    <p>${translations[lang].totalTime}: ${timeCost.toFixed(2)}${translations[lang].seconds}</p>
+                    <h3>${translation.successRate}: ${(successCount / inputs.attempts * 100).toFixed(2)}%</h3>
+                    <p>${translation.totalAttempts}: ${inputs.attempts}</p>
+                    <p>${translation.totalTime}: ${timeCost.toFixed(2)}${translation.seconds}</p>
                 </div>`;
 
             sortedEntries.forEach(([key, value]) => {
                 const avg = value.counts.reduce((a, b) => a + b, 0) / value.counts.length;
                 const isSuccess = value.success > 0;
                 const avgText = isSuccess
-                    ? `${translations[lang].averageRemaining}${avg.toFixed(2)}${translations[lang].pullsUnit}`
-                    : `${translations[lang].averagePity}${avg.toFixed(2)}${translations[lang].pullsUnit}`;
+                    ? `${translation.averageRemaining}${avg.toFixed(2)}${translation.pullsUnit}`
+                    : `${translation.averagePity}${avg.toFixed(2)}${translation.pullsUnit}`;
                 const percentage = (value.counts.length / inputs.attempts * 100);
 
                 const resultItem = document.createElement('div');
                 resultItem.className = 'result-item';
                 resultItem.innerHTML = `
                 <p><strong>${key}</strong></p>
-                <p>${avgText} | ${translations[lang].frequency}: ${value.counts.length}</p>
+                <p>${avgText} | ${translation.frequency}: ${value.counts.length}</p>
                 <div class="progress-container">
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: ${percentage.toFixed(2)}%"></div>
