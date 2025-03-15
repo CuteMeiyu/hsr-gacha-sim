@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>星铁抽卡模拟器</title>
     <style>
         :root {
@@ -228,7 +229,7 @@
 
 <body>
     <div class="container">
-        <h1>抽卡模拟器</h1>
+        <h1>星铁抽卡模拟器</h1>
         <div class="input-group">
             <div class="input-item">
                 <label>模拟次数:</label>
@@ -278,7 +279,7 @@
 
         <button onclick="runSimulation()">开始模拟</button>
 
-        <div class="results" id="results">
+        <div id="results">
             <!-- 结果将动态插入到这里 -->
         </div>
     </div>
@@ -364,10 +365,10 @@
             const tooltip = document.querySelector('.histogram-tooltip');
 
             if (container && !container.querySelector(".bin-label")) {
-                e.preventDefault(); // 阻止默认行为
+                e.preventDefault();
                 showTooltip(container, true);
 
-                // 添加点击外部关闭功能
+                // 点击外部关闭
                 const closeTooltip = (event) => {
                     if (!event.target.closest('.histogram-bar-container')) {
                         tooltip.style.display = 'none';
@@ -421,7 +422,7 @@
 
             // 过滤非C/L字符并转为大写
             const filtered = routeInput.value.toUpperCase().replace(/[^CL]/g, '');
-            routeInput.value = filtered; // 自动修正输入内容
+            routeInput.value = filtered;
 
             const cCount = (filtered.match(/C/g) || []).length;
             const lCount = (filtered.match(/L/g) || []).length;
